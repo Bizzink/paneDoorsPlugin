@@ -36,7 +36,8 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                     if (block != null && block.getBlockData() instanceof GlassPane) {
                         try {
                             door = new PaneDoor(block);
-                            Main.getInstance().addDoor(door);
+                            door.enableHighlight((Player) sender);
+                            Main.addDoor(door);
                         } catch (IllegalArgumentException e) {
                             sender.sendMessage("Not a valid door block!");
                         }
@@ -52,7 +53,8 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                         door = getDoor(block);
 
                         if (door != null) {
-                            door.enableHighlight();
+                            door.enableHighlight((Player) sender);
+                            DoorToolListener.addPersistentHighlight((Player) sender);
                         }
                         else {
                             sender.sendMessage("Not a door!");
@@ -67,8 +69,9 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                 case "showall":
                     if (Main.getDoors().size() > 0) {
                         for (PaneDoor d: Main.getDoors()) {
-                            d.enableHighlight();
+                            d.enableHighlight((Player) sender);
                         }
+                        DoorToolListener.addPersistentHighlight((Player) sender);
                     }
 
                     sender.sendMessage("Showed all doors");
@@ -80,7 +83,19 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                         door = getDoor(block);
 
                         if (door != null) {
-                            door.disableHighlight();
+                            door.disableHighlight((Player) sender);
+
+                            boolean hasVisibleDoors = false;
+
+                            for (PaneDoor d: Main.getDoors()) {
+                                if (d.isHighlightedForPlayer((Player) sender)) {
+                                    hasVisibleDoors = true;
+                                }
+                            }
+
+                            if (!hasVisibleDoors) {
+                                DoorToolListener.removePersistentHighlight((Player) sender);
+                            }
                         }
                         else {
                             sender.sendMessage("Not a door!");
@@ -95,8 +110,9 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                 case "hideall":
                     if (Main.getDoors().size() > 0) {
                         for (PaneDoor d: Main.getDoors()) {
-                            d.disableHighlight();
+                            d.disableHighlight((Player) sender);
                         }
+                        DoorToolListener.removePersistentHighlight((Player) sender);
                     }
                     sender.sendMessage("Hid all doors");
 
@@ -107,7 +123,7 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                         door = getDoor(block);
 
                         if (door != null) {
-                            Main.getInstance().deleteDoor(door);
+                            Main.deleteDoor(door);
                             sender.sendMessage("Door deleted");
                         }
                         else {

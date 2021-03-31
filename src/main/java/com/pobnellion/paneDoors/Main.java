@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class Main extends JavaPlugin {
-    // :)
     private static Main instance;
     private static List<PaneDoor> doors;
     private static FileConfiguration config;
@@ -23,6 +22,7 @@ public class Main extends JavaPlugin {
         logger = getLogger();
 
         this.getCommand("panedoor").setExecutor(new CommandPaneDoor());
+        getServer().getPluginManager().registerEvents(new DoorToolListener(), this);
 
         saveDefaultConfig();
         config = getConfig();
@@ -87,22 +87,22 @@ public class Main extends JavaPlugin {
         saveConfig();
     }
 
-    public void addDoor(PaneDoor door) {
+    public static void addDoor(PaneDoor door) {
         doors.add(door);
-        addDoorToConfig(door);
+        instance.addDoorToConfig(door);
     }
 
-    public void deleteDoor(PaneDoor door) {
-        door.disableHighlight();
+    public static void deleteDoor(PaneDoor door) {
+        door.disableHighlight(null);
         doors.remove(door);
 
         config.set("doors", null);
 
         for (PaneDoor d: doors) {
-            addDoorToConfig(d);
+            instance.addDoorToConfig(d);
         }
 
-        saveConfig();
+        instance.saveConfig();
     }
 
     public static List<PaneDoor> getDoors() {
