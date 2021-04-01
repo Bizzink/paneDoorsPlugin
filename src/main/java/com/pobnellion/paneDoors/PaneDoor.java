@@ -15,9 +15,10 @@ public class PaneDoor {
     private final List<Block> doorBlocks;
     private final Axis axis;
     private int highlightTaskID = -1;
+    private Location center;
     private final List<Location> highlightParticleLocations;
     private Color highlightColor;
-    private  final Set<Player> highlightViewers = new HashSet<>();
+    private final Set<Player> highlightViewers = new HashSet<>();
 
     public PaneDoor(Block startBlock) {
         if (!(startBlock.getBlockData() instanceof GlassPane)) {
@@ -142,9 +143,19 @@ public class PaneDoor {
         Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 1);
 
         for (Player highlightViewer: highlightViewers) {
-            for (Location particleLocation : this.highlightParticleLocations) {
-                highlightViewer.spawnParticle(Particle.REDSTONE, particleLocation, 1, dustOptions);
+            if (highlightViewer.getLocation().distance(this.center) <= Main.getHighlightViewDist()) {
+                for (Location particleLocation : this.highlightParticleLocations) {
+                    highlightViewer.spawnParticle(Particle.REDSTONE, particleLocation, 1, dustOptions);
+                }
             }
+        }
+    }
+
+    public void displayDeleteHighlight() {
+        Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 1);
+
+        for (Location particleLocation : this.highlightParticleLocations) {
+            this.doorBlocks.get(0).getWorld().spawnParticle(Particle.REDSTONE, particleLocation, 1, dustOptions);
         }
     }
 
@@ -154,6 +165,49 @@ public class PaneDoor {
 
     public void updateDoorBlocks() {
         this.doorBlocks.removeIf(block -> !isValidDoorBlock(block, this.axis));
+
+        this.center = new Location(this.doorBlocks.get(0).getWorld(), 0, 0, 0);
+
+        if (this.axis == Axis.NS) {
+            int min_z = this.doorBlocks.get(0).getZ();
+            int max_z = this.doorBlocks.get(0).getZ();
+
+            for (Block block: this.doorBlocks) {
+                min_z = Math.min(min_z, block.getZ());
+                max_z = Math.max(max_z, block.getZ());
+            }
+
+            int avg_z = min_z + ((max_z - min_z) / 2);
+
+            this.center.setZ(avg_z);
+            this.center.setX(this.doorBlocks.get(0).getX());
+        }
+        else {
+            int min_x = this.doorBlocks.get(0).getX();
+            int max_x = this.doorBlocks.get(0).getX();
+
+            for (Block block: this.doorBlocks) {
+                min_x = Math.min(min_x, block.getX());
+                max_x = Math.max(max_x, block.getX());
+            }
+
+            int avg_x = min_x + ((max_x - min_x) / 2);
+
+            this.center.setX(avg_x);
+            this.center.setZ(this.doorBlocks.get(0).getZ());
+        }
+
+        int min_y = this.doorBlocks.get(0).getY();
+        int max_y = this.doorBlocks.get(0).getY();
+
+        for (Block block: this.doorBlocks) {
+            min_y = Math.min(min_y, block.getY());
+            max_y = Math.max(max_y, block.getY());
+        }
+
+        int avg_y = min_y + ((max_y - min_y) / 2);
+
+        this.center.setY(avg_y);
 
         this.highlightParticleLocations.clear();
         float interval = 5.0f;

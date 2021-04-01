@@ -5,6 +5,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -44,8 +45,13 @@ public class DoorToolListener implements Listener {
                 }
 
                 if (targetedDoor != null) {
-                    targetedDoor.toggleHighlight(player);
-                } else {
+                    if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+                        Main.deleteDoor(targetedDoor);
+                    }
+                    else {
+                        targetedDoor.toggleHighlight(player);
+                    }
+                } else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
                     PaneDoor door = new PaneDoor(block);
                     door.enableHighlight(player);
                     Main.addDoor(door);

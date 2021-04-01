@@ -14,6 +14,7 @@ public class Main extends JavaPlugin {
     private static List<PaneDoor> doors;
     private static FileConfiguration config;
     private static Logger logger;
+    private static int highlightViewDist;
 
     @Override
     public void onEnable() {
@@ -23,10 +24,12 @@ public class Main extends JavaPlugin {
 
         this.getCommand("panedoor").setExecutor(new CommandPaneDoor());
         getServer().getPluginManager().registerEvents(new DoorToolListener(), this);
+        getServer().getPluginManager().registerEvents(new DoorBlockListener(), this);
 
         saveDefaultConfig();
         config = getConfig();
         int doorCount = loadDoors();
+        highlightViewDist = config.getInt("highlightViewDist");
 
         logger.info("Loaded " + doorCount + " doors from config.");
     }
@@ -93,7 +96,9 @@ public class Main extends JavaPlugin {
     }
 
     public static void deleteDoor(PaneDoor door) {
+        door.setHighlightColor(255, 0, 0);
         door.disableHighlight(null);
+        door.displayDeleteHighlight();
         doors.remove(door);
 
         config.set("doors", null);
@@ -107,5 +112,14 @@ public class Main extends JavaPlugin {
 
     public static List<PaneDoor> getDoors() {
         return doors;
+    }
+
+    public static int getHighlightViewDist() {
+        return highlightViewDist;
+    }
+
+    public static void setHighlightViewDist(int dist) {
+        config.set("highlightViewDist", dist);
+        instance.saveConfig();
     }
 }
