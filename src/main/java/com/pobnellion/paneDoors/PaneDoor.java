@@ -17,7 +17,7 @@ public class PaneDoor {
     private Color highlightColor;
     private final Set<Player> highlightViewers = new HashSet<>();
 
-    public PaneDoor(Block startBlock) {
+    public PaneDoor(Block startBlock, boolean respectColour) {
         if (!isValidDoorBlock(startBlock, null)) {
             throw new IllegalArgumentException("Invalid block!");
         }
@@ -37,7 +37,7 @@ public class PaneDoor {
         this.doorBlocks = new ArrayList<>();
         this.highlightParticleLocations = new ArrayList<>();
         this.highlightColor = Main.getHighlightColour();
-        this.findDoorBlocks(startBlock);
+        this.findDoorBlocks(startBlock, startBlock, respectColour);
         this.updateDoorBlocks();
     }
 
@@ -77,30 +77,41 @@ public class PaneDoor {
         }
     }
 
-    private void findDoorBlocks(Block block) {
+    private void findDoorBlocks(Block block, Block startBlock, boolean respectColour) {
+        // check distance
+        if (Math.abs(block.getX() - startBlock.getX()) > Main.getSearchRadius() ||
+            Math.abs(block.getY() - startBlock.getY()) > Main.getSearchRadius() ||
+            Math.abs(block.getZ() - startBlock.getZ()) > Main.getSearchRadius()) {
+            return;
+        }
+
+        // check colour
+        if (respectColour) {
+            if (block.getBlockData().getMaterial() != startBlock.getBlockData().getMaterial()) {
+                return;
+            }
+        }
+
         if (!this.doorBlocks.contains(block) && isValidDoorBlock(block, this.axis)) {
             this.doorBlocks.add(block);
-
             World world = block.getWorld();
 
-            // TODO: max search size
-
             // up
-            findDoorBlocks(world.getBlockAt(block.getLocation().add(0, 1, 0)));
+            findDoorBlocks(world.getBlockAt(block.getLocation().add(0, 1, 0)), startBlock, respectColour);
             // down
-            findDoorBlocks(world.getBlockAt(block.getLocation().add(0, -1, 0)));
+            findDoorBlocks(world.getBlockAt(block.getLocation().add(0, -1, 0)), startBlock, respectColour);
 
             if (this.axis == Axis.NS) {
                 // north
-                findDoorBlocks(world.getBlockAt(block.getLocation().add(0, 0, -1)));
+                findDoorBlocks(world.getBlockAt(block.getLocation().add(0, 0, -1)), startBlock, respectColour);
                 // south
-                findDoorBlocks(world.getBlockAt(block.getLocation().add(0, 0, 1)));
+                findDoorBlocks(world.getBlockAt(block.getLocation().add(0, 0, 1)), startBlock, respectColour);
             }
             else {
                 // east
-                findDoorBlocks(world.getBlockAt(block.getLocation().add(1, 0, 0)));
+                findDoorBlocks(world.getBlockAt(block.getLocation().add(1, 0, 0)), startBlock, respectColour);
                 // west
-                findDoorBlocks(world.getBlockAt(block.getLocation().add(-1, 0, 0)));
+                findDoorBlocks(world.getBlockAt(block.getLocation().add(-1, 0, 0)), startBlock, respectColour);
             }
         }
     }

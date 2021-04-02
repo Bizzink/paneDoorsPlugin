@@ -23,6 +23,11 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
             return false;
         }
 
+        if (!sender.hasPermission("panedoors.admin") && !sender.isOp()) {
+            sender.sendMessage("You do not have permission to use this command.");
+            return true;
+        }
+
         if (args.length == 0) {
             sender.sendMessage("Usage: /" + label + " [create | show | hide | delete | highlight | help]");
             return true;
@@ -34,8 +39,14 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase()) {
             case "create":
                 if (block != null) {
+                    boolean respectColour = false;
+
+                    if (args.length == 2) {
+                        respectColour = Boolean.parseBoolean(args[1]);
+                    }
+
                     try {
-                        door = new PaneDoor(block);
+                        door = new PaneDoor(block, respectColour);
                         door.enableHighlight((Player) sender);
                         Main.addDoor(door);
                         break;
@@ -195,7 +206,13 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
         List<String> options = new ArrayList<>();
         List<String> completions = new ArrayList<>();
 
-        //TODO: permissions for these
+        if (!(commandSender instanceof Player)) {
+            return null;
+        }
+
+        if (!commandSender.hasPermission("panedoors.admin") && !commandSender.isOp()) {
+            return null;
+        }
 
         if (args.length == 1) {
             options.add("create");
@@ -210,6 +227,11 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
 
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
+                case "create":
+                    options.add("true");
+                    options.add("false");
+                    break;
+
                 case "show":
                 case "hide":
                     options.add("all");

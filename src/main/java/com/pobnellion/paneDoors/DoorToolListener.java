@@ -28,6 +28,10 @@ public class DoorToolListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getClickedBlock();
 
+        if (!player.hasPermission("panedoors.admin") && !player.isOp()) {
+            return;
+        }
+
         if (!player.getInventory().getItemInMainHand().getType().equals(doorTool)) {
             return;
         }
@@ -46,7 +50,7 @@ public class DoorToolListener implements Listener {
                         targetedDoor.get().toggleHighlight(player);
                     }
                 } else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
-                    PaneDoor door = new PaneDoor(block);
+                    PaneDoor door = new PaneDoor(block, false);
                     door.enableHighlight(player);
                     Main.addDoor(door);
                 }
@@ -57,6 +61,11 @@ public class DoorToolListener implements Listener {
     @EventHandler
     public void playerHoldTool(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
+
+        if (!player.hasPermission("panedoors.admin") && !player.isOp()) {
+            return;
+        }
+
         ItemStack item = player.getInventory().getItem(event.getNewSlot());
 
         if (item != null && item.getType().equals(doorTool)) {

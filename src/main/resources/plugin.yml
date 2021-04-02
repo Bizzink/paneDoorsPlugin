@@ -7,6 +7,6 @@ author: Bizink
 commands:
   panedoor:
     description: Make a pane door where the player is looking
-    usage: /panedoor [create | show | showall | hide | hideall | delete | help]
-    permission: panedoors.makedoor
+    usage: /panedoor [create | show | hide | delete | highlight | help]
+    permission: panedoors.admin
     aliases: pd

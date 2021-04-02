@@ -15,6 +15,7 @@ public class Main extends JavaPlugin {
     private static FileConfiguration config;
     private static int highlightViewDist;
     private static Color highlightColour;
+    private static int searchRadius;
 
     @Override
     public void onEnable() {
@@ -27,6 +28,7 @@ public class Main extends JavaPlugin {
 
         saveDefaultConfig();
         config = getConfig();
+        searchRadius = config.getInt("searchradius");
         highlightViewDist = config.getInt("highlight.dist");
         highlightColour = Color.fromRGB(
                 config.getInt("highlight.r"),
@@ -131,5 +133,10 @@ public class Main extends JavaPlugin {
 
     public static Color getHighlightColour() {
         return highlightColour;
+    }
+
+    // only modifiable by directly editing the config
+    public static int getSearchRadius() {
+        return searchRadius;
     }
 }

@@ -1,3 +1,4 @@
+searchradius: 8
 highlight:
   dist: 30
   r: 135
