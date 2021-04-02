@@ -6,10 +6,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.type.GlassPane;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class PaneDoor {
     private final List<Block> doorBlocks;
@@ -21,8 +18,8 @@ public class PaneDoor {
     private final Set<Player> highlightViewers = new HashSet<>();
 
     public PaneDoor(Block startBlock) {
-        if (!(startBlock.getBlockData() instanceof GlassPane)) {
-            throw new IllegalArgumentException("Block must be an instance of GlassPane!");
+        if (!isValidDoorBlock(startBlock, null)) {
+            throw new IllegalArgumentException("Invalid block!");
         }
 
         Set<BlockFace> faces = ((GlassPane) startBlock.getBlockData()).getFaces();
@@ -39,16 +36,16 @@ public class PaneDoor {
 
         this.doorBlocks = new ArrayList<>();
         this.highlightParticleLocations = new ArrayList<>();
-        this.highlightColor = Color.fromRGB(135, 30, 255);
+        this.highlightColor = Main.getHighlightColour();
         this.findDoorBlocks(startBlock);
         this.updateDoorBlocks();
     }
 
     public PaneDoor(List<Block> blocks, Axis axis) {
-        this.doorBlocks = blocks;
         this.axis = axis;
+        this.doorBlocks = blocks;
         this.highlightParticleLocations = new ArrayList<>();
-        this.highlightColor = Color.fromRGB(135, 30, 255);
+        this.highlightColor = Main.getHighlightColour();
         this.updateDoorBlocks();
     }
 
@@ -59,8 +56,12 @@ public class PaneDoor {
 
         Set<BlockFace> faces = ((GlassPane) block.getBlockData()).getFaces();
 
-        boolean ns = faces.size() == 2 && faces.stream().allMatch(face -> face == BlockFace.NORTH || face == BlockFace.SOUTH);
-        boolean ew = faces.size() == 2 && faces.stream().allMatch(face -> face == BlockFace.EAST || face == BlockFace.WEST);
+        if (faces.size() != 2) {
+            return false;
+        }
+
+        boolean ns = faces.stream().allMatch(face -> face == BlockFace.NORTH || face == BlockFace.SOUTH);
+        boolean ew = faces.stream().allMatch(face -> face == BlockFace.EAST || face == BlockFace.WEST);
 
         if (axis == null) {
             return ns || ew;
@@ -108,7 +109,7 @@ public class PaneDoor {
         this.highlightViewers.add(player);
 
         if (this.highlightTaskID == -1) {
-            this.highlightTaskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getInstance(), this::highlightDoorBlocks, 0L, 2L);
+            this.highlightTaskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getInstance(), this::highlightDoorBlocks, 0L, 3L);
         }
     }
 
@@ -140,106 +141,94 @@ public class PaneDoor {
     }
 
     private void highlightDoorBlocks() {
-        Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 1);
+        Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 0.75f);
 
         for (Player highlightViewer: highlightViewers) {
             if (highlightViewer.getLocation().distance(this.center) <= Main.getHighlightViewDist()) {
-                for (Location particleLocation : this.highlightParticleLocations) {
-                    highlightViewer.spawnParticle(Particle.REDSTONE, particleLocation, 1, dustOptions);
+
+                // stagger particle spawning so they appear more consistently on the door
+                for (int i = 0; i < 3; i ++) {
+                    for (int j = 0; j < this.highlightParticleLocations.size() / 3; j++) {
+                        highlightViewer.spawnParticle(Particle.REDSTONE,
+                                this.highlightParticleLocations.get((3 * j ) + i),
+                                1, dustOptions);
+                    }
                 }
             }
         }
     }
 
     public void displayDeleteHighlight() {
-        Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 1);
+        Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 0.75f);
 
-        for (Location particleLocation : this.highlightParticleLocations) {
-            this.doorBlocks.get(0).getWorld().spawnParticle(Particle.REDSTONE, particleLocation, 1, dustOptions);
+        // stagger particle spawning so they appear more consistently on the door
+        for (int i = 0; i < 3; i ++) {
+            for (int j = 0; j < this.highlightParticleLocations.size() / 3; j++) {
+                this.doorBlocks.get(0).getWorld().spawnParticle(Particle.REDSTONE,
+                        this.highlightParticleLocations.get((3 * j ) + i),
+                        1, dustOptions);
+            }
         }
     }
 
-    public void setHighlightColor(int r, int g, int b) {
-        this.highlightColor = Color.fromRGB(r, g, b);
+    public void setHighlightColor(Color color) {
+        this.highlightColor = color;
     }
 
     public void updateDoorBlocks() {
-        this.doorBlocks.removeIf(block -> !isValidDoorBlock(block, this.axis));
+        World world = this.doorBlocks.get(0).getWorld();
+        this.center = new Location(world, 0, 0, 0);
 
-        this.center = new Location(this.doorBlocks.get(0).getWorld(), 0, 0, 0);
+        int min_y = this.doorBlocks.stream().min(Comparator.comparing(Block::getY)).get().getY();
+        int max_y = this.doorBlocks.stream().max(Comparator.comparing(Block::getY)).get().getY();
+        int avg_y = min_y + ((max_y - min_y) / 2);
+        this.center.setY(avg_y);
 
         if (this.axis == Axis.NS) {
-            int min_z = this.doorBlocks.get(0).getZ();
-            int max_z = this.doorBlocks.get(0).getZ();
-
-            for (Block block: this.doorBlocks) {
-                min_z = Math.min(min_z, block.getZ());
-                max_z = Math.max(max_z, block.getZ());
-            }
-
+            int min_z = this.doorBlocks.stream().min(Comparator.comparing(Block::getZ)).get().getZ();
+            int max_z = this.doorBlocks.stream().max(Comparator.comparing(Block::getZ)).get().getZ();
             int avg_z = min_z + ((max_z - min_z) / 2);
-
             this.center.setZ(avg_z);
             this.center.setX(this.doorBlocks.get(0).getX());
         }
         else {
-            int min_x = this.doorBlocks.get(0).getX();
-            int max_x = this.doorBlocks.get(0).getX();
-
-            for (Block block: this.doorBlocks) {
-                min_x = Math.min(min_x, block.getX());
-                max_x = Math.max(max_x, block.getX());
-            }
-
+            int min_x = this.doorBlocks.stream().min(Comparator.comparing(Block::getX)).get().getX();
+            int max_x = this.doorBlocks.stream().max(Comparator.comparing(Block::getX)).get().getX();
             int avg_x = min_x + ((max_x - min_x) / 2);
-
             this.center.setX(avg_x);
             this.center.setZ(this.doorBlocks.get(0).getZ());
         }
 
-        int min_y = this.doorBlocks.get(0).getY();
-        int max_y = this.doorBlocks.get(0).getY();
-
-        for (Block block: this.doorBlocks) {
-            min_y = Math.min(min_y, block.getY());
-            max_y = Math.max(max_y, block.getY());
-        }
-
-        int avg_y = min_y + ((max_y - min_y) / 2);
-
-        this.center.setY(avg_y);
-
-        this.highlightParticleLocations.clear();
-        float interval = 5.0f;
+        float interval = 7.0f;
 
         if (this.axis == Axis.NS) {
             for (Block block : this.doorBlocks) {
                 // top
-                if (!isDoorBlock(block.getLocation().add(0, 1, 0))) {
+                if (!this.contains(world.getBlockAt(block.getLocation().add(0, 1, 0)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(0.4, 1, i));
-                        this.highlightParticleLocations.add(block.getLocation().add(0.6, 1, i));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.4, 0.95, i));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.6, 0.95, i));
                     }
                 }
                 // bottom
-                if (!isDoorBlock(block.getLocation().add(0, -1, 0))) {
+                if (!this.contains(world.getBlockAt(block.getLocation().add(0, -1, 0)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(0.4, 0, i));
-                        this.highlightParticleLocations.add(block.getLocation().add(0.6, 0, i));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.4, 0.05, i));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.6, 0.05, i));
                     }
                 }
                 // north
-                if (!isDoorBlock(block.getLocation().add(0, 0, -1))) {
+                if (!this.contains(world.getBlockAt(block.getLocation().add(0, 0, -1)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(0.4, i, 0));
-                        this.highlightParticleLocations.add(block.getLocation().add(0.6, i, 0));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.4, i, 0.05));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.6, i, 0.05));
                     }
                 }
                 // south
-                if (!isDoorBlock(block.getLocation().add(0, 0, 1))) {
+                if (!this.contains(world.getBlockAt(block.getLocation().add(0, 0, 1)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(0.4, i, 1));
-                        this.highlightParticleLocations.add(block.getLocation().add(0.6, i, 1));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.4, i, 0.95));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.6, i, 0.95));
                     }
                 }
             }
@@ -247,31 +236,31 @@ public class PaneDoor {
         else {
             for (Block block : this.doorBlocks) {
                 // top
-                if (!isDoorBlock(block.getLocation().add(0, 1, 0))) {
+                if (!this.contains(world.getBlockAt(block.getLocation().add(0, 1, 0)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(i, 1, 0.4));
-                        this.highlightParticleLocations.add(block.getLocation().add(i, 1, 0.6));
+                        this.highlightParticleLocations.add(block.getLocation().add(i, 0.95, 0.4));
+                        this.highlightParticleLocations.add(block.getLocation().add(i, 0.95, 0.6));
                     }
                 }
                 // bottom
-                if (!isDoorBlock(block.getLocation().add(0, -1, 0))) {
+                if (!this.contains(world.getBlockAt(block.getLocation().add(0, -1, 0)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(i, 0, 0.4));
-                        this.highlightParticleLocations.add(block.getLocation().add(i, 0, 0.6));
+                        this.highlightParticleLocations.add(block.getLocation().add(i, 0.05, 0.4));
+                        this.highlightParticleLocations.add(block.getLocation().add(i, 0.05, 0.6));
                     }
                 }
-                // north
-                if (!isDoorBlock(block.getLocation().add(-1, 0, 0))) {
+                // east
+                if (!this.contains(world.getBlockAt(block.getLocation().add(-1, 0, 0)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(0, i, 0.4));
-                        this.highlightParticleLocations.add(block.getLocation().add(0, i, 0.6));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.05, i, 0.4));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.05, i, 0.6));
                     }
                 }
-                // south
-                if (!isDoorBlock(block.getLocation().add(1, 0, 0))) {
+                // west
+                if (!this.contains(world.getBlockAt(block.getLocation().add(1, 0, 0)))) {
                     for (float i = 0.0f; i < 1; i += 1.0f / interval) {
-                        this.highlightParticleLocations.add(block.getLocation().add(1, i, 0.4));
-                        this.highlightParticleLocations.add(block.getLocation().add(1, i, 0.6));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.95, i, 0.4));
+                        this.highlightParticleLocations.add(block.getLocation().add(0.95, i, 0.6));
                     }
                 }
             }
@@ -279,24 +268,11 @@ public class PaneDoor {
     }
 
     public List<Block> getDoorBlocks() {
-        this.updateDoorBlocks();
         return this.doorBlocks;
     }
 
-    public boolean isDoorBlock(Block block) {
-        this.updateDoorBlocks();
+    public boolean contains(Block block) {
         return this.doorBlocks.contains(block);
-    }
-
-    public boolean isDoorBlock(Location location) {
-
-        for (Block doorBlock: this.doorBlocks) {
-            if (doorBlock.getLocation().equals(location)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public Axis getAxis() {

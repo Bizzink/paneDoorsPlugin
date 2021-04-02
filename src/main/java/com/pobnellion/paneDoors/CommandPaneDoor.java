@@ -3,7 +3,6 @@ package com.pobnellion.paneDoors;
 import org.bukkit.ChatColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.type.GlassPane;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,144 +24,166 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            sender.sendMessage("Usage: /" + label + " [create | show | showall | hide | hideall | delete | help]");
+            sender.sendMessage("Usage: /" + label + " [create | show | hide | delete | highlight | help]");
+            return true;
         }
-        else if (args.length == 1) {
-            Block block = ((Player) sender).getTargetBlockExact(16, FluidCollisionMode.NEVER);
-            PaneDoor door;
 
-            switch (args[0].toLowerCase()) {
-                case "create":
-                    if (block != null && block.getBlockData() instanceof GlassPane) {
-                        try {
-                            door = new PaneDoor(block);
-                            door.enableHighlight((Player) sender);
-                            Main.addDoor(door);
-                        } catch (IllegalArgumentException e) {
-                            sender.sendMessage("Not a valid door block!");
-                        }
+        Block block = ((Player) sender).getTargetBlockExact(16, FluidCollisionMode.NEVER);
+        PaneDoor door;
+
+        switch (args[0].toLowerCase()) {
+            case "create":
+                if (block != null) {
+                    try {
+                        door = new PaneDoor(block);
+                        door.enableHighlight((Player) sender);
+                        Main.addDoor(door);
+                        break;
+                    } catch (IllegalArgumentException ignored) {}
+                }
+
+                sender.sendMessage("Not a valid door block!");
+                break;
+
+            case "show":
+                if (args.length == 1) {
+                    if (block != null && (door = getDoor(block)) != null) {
+                        door.enableHighlight((Player) sender);
+                        DoorToolListener.addPersistentHighlight((Player) sender);
+                        break;
                     }
-                    else {
-                        sender.sendMessage("Not a valid door block!");
-                    }
-
-                    break;
-
-                case "show":
-                    if (block != null && block.getBlockData() instanceof GlassPane) {
-                        door = getDoor(block);
-
-                        if (door != null) {
-                            door.enableHighlight((Player) sender);
-                            DoorToolListener.addPersistentHighlight((Player) sender);
-                        }
-                        else {
-                            sender.sendMessage("Not a door!");
-                        }
-                    }
-                    else {
-                        sender.sendMessage("No door found!");
-                    }
-
-                    break;
-
-                case "showall":
+                }
+                else if (args.length == 2 && args[1].equals("all")) {
                     if (Main.getDoors().size() > 0) {
                         for (PaneDoor d: Main.getDoors()) {
-                            d.enableHighlight((Player) sender);
+                          d.enableHighlight((Player) sender);
                         }
+
                         DoorToolListener.addPersistentHighlight((Player) sender);
                     }
-
                     sender.sendMessage("Showed all doors");
+                }
+                break;
 
+            case "hide":
+                if (args.length == 1) {
+                    if (block != null && (door = getDoor(block)) != null) {
+                        door.disableHighlight((Player) sender);
+
+                        if (Main.getDoors().stream().noneMatch(d -> d.isHighlightedForPlayer((Player) sender))) {
+                            DoorToolListener.removePersistentHighlight((Player) sender);
+                        }
+                    }
+                }
+                else if (args.length == 2 && args[1].equals("all")) {
+                    for (PaneDoor d: Main.getDoors()) {
+                        d.disableHighlight((Player) sender);
+                    }
+
+                    DoorToolListener.removePersistentHighlight((Player) sender);
+                    sender.sendMessage("Hid all doors");
+                }
+                break;
+
+            case "delete":
+                if (block != null && (door = getDoor(block)) != null) {
+                    Main.deleteDoor(door);
+                    sender.sendMessage("Door deleted");
                     break;
+                }
 
-                case "hide":
-                    if (block != null && block.getBlockData() instanceof GlassPane) {
-                        door = getDoor(block);
+                sender.sendMessage("No door found!");
+                break;
 
-                        if (door != null) {
-                            door.disableHighlight((Player) sender);
+            case "highlight":
+                switch (args.length) {
+                    case 1:
+                        sender.sendMessage("Usage: /" + label + " highlight [distance | colour]");
+                        break;
 
-                            boolean hasVisibleDoors = false;
+                    case 2:
+                        switch (args[1].toLowerCase()) {
+                            case "distance":
+                                sender.sendMessage("Usage: /" + label + " highlight distance <value>");
+                                break;
 
-                            for (PaneDoor d: Main.getDoors()) {
-                                if (d.isHighlightedForPlayer((Player) sender)) {
-                                    hasVisibleDoors = true;
+                            case "colour":
+                                sender.sendMessage("Usage: /" + label + " highlight colour <r> <g> <b>");
+                                break;
+
+                            default:
+                                sender.sendMessage("Invalid argument \"" + args[1] + "\"");
+                        }
+                        break;
+
+                    case 3:
+                        switch (args[1].toLowerCase()) {
+                            case "distance":
+                                try {
+                                    int dist = Integer.parseInt(args[2]);
+                                    Main.setHighlightViewDist(dist);
+                                    sender.sendMessage("Set highlight view distance to " + dist);
+                                }
+                                catch (NumberFormatException e) {
+                                    sender.sendMessage("\"" + args[2] + "\" is not a valid integer!");
+                                }
+                                break;
+
+                            case "colour":
+                                sender.sendMessage("Usage: /" + label + " highlight colour <r> <g> <b>");
+                                break;
+
+                            default:
+                                sender.sendMessage("Invalid argument \"" + args[1] + "\"");
+                        }
+
+                    default:
+                        if (args[1].equals("colour")) {
+                            if (args.length == 5) {
+                                try {
+                                    int r = Integer.parseInt(args[2]);
+                                    int g = Integer.parseInt(args[3]);
+                                    int b = Integer.parseInt(args[4]);
+
+                                    Main.setHighlightColour(r, g, b);
+                                    sender.sendMessage("Set highlight colour to (" + r + ", " + g + ", " + b + ")");
+                                }
+                                catch (NumberFormatException e) {
+                                    sender.sendMessage("Invalid value");
                                 }
                             }
-
-                            if (!hasVisibleDoors) {
-                                DoorToolListener.removePersistentHighlight((Player) sender);
+                            else {
+                                sender.sendMessage("Usage: /" + label + " highlight colour <r> <g> <b>");
                             }
                         }
-                        else {
-                            sender.sendMessage("Not a door!");
-                        }
-                    }
-                    else {
-                        sender.sendMessage("No door found!");
-                    }
+                }
+                break;
 
-                    break;
+            case "help":
+                sender.sendMessage("Usage: /panedoor, /pd");
+                sender.sendMessage("");
+                sender.sendMessage("Args:");
+                sender.sendMessage("");
+                sender.sendMessage("create: create a new door where the player is looking");
+                sender.sendMessage("show: highlight the door the player is looking at");
+                sender.sendMessage("hide: stop highlighting the door the player is looking at");
+                sender.sendMessage("highlight: change door highlight properties (global)");
+                sender.sendMessage("delete: delete the door where the player is looking");
+                break;
 
-                case "hideall":
-                    if (Main.getDoors().size() > 0) {
-                        for (PaneDoor d: Main.getDoors()) {
-                            d.disableHighlight((Player) sender);
-                        }
-                        DoorToolListener.removePersistentHighlight((Player) sender);
-                    }
-                    sender.sendMessage("Hid all doors");
-
-                    break;
-
-                case "delete":
-                    if (block != null && block.getBlockData() instanceof GlassPane) {
-                        door = getDoor(block);
-
-                        if (door != null) {
-                            Main.deleteDoor(door);
-                            sender.sendMessage("Door deleted");
-                        }
-                        else {
-                            sender.sendMessage("Not a door!");
-                        }
-                    }
-                    else {
-                        sender.sendMessage("No door found!");
-                    }
-
-                    break;
-
-                case "help":
-                    sender.sendMessage("Usage:");
-                    sender.sendMessage("/panedoor, /pd");
-                    sender.sendMessage("");
-                    sender.sendMessage("Args:");
-                    sender.sendMessage("");
-                    sender.sendMessage("create: create a new door where the player is looking");
-                    sender.sendMessage("show: highlight the door the player is looking at");
-                    sender.sendMessage("showall: highlight all doors");
-                    sender.sendMessage("hide: stop highlighting the door the player is looking at");
-                    sender.sendMessage("hideall: stop highlighting all doors");
-                    sender.sendMessage("delete: delete the door where the player is looking");
-
-                    break;
-
-                default:
-                    sender.sendMessage("Invalid argument \"" + args[0] + "\"");
-            }
+            default:
+                sender.sendMessage("Invalid argument \"" + args[0] + "\"");
         }
 
         return true;
     }
 
     private PaneDoor getDoor(Block block) {
-        for (PaneDoor door: Main.getDoors()) {
-            if (door.isDoorBlock(block)) {
-                return door;
+        if (PaneDoor.isValidDoorBlock(block, null)) {
+            for (PaneDoor door : Main.getDoors()) {
+                if (door.contains(block)) {
+                    return door;
+                }
             }
         }
 
@@ -176,15 +197,33 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
 
         //TODO: permissions for these
 
-        options.add("create");
-        options.add("show");
-        options.add("showall");
-        options.add("hide");
-        options.add("hideall");
-        options.add("delete");
-        options.add("help");
+        if (args.length == 1) {
+            options.add("create");
+            options.add("show");
+            options.add("hide");
+            options.add("delete");
+            options.add("highlight");
+            options.add("help");
 
-        StringUtil.copyPartialMatches(args[0], options, completions);
+            StringUtil.copyPartialMatches(args[0], options, completions);
+        }
+
+        if (args.length == 2) {
+            switch (args[0].toLowerCase()) {
+                case "show":
+                case "hide":
+                    options.add("all");
+                    break;
+
+                case "highlight":
+                    options.add("distance");
+                    options.add("colour");
+                    break;
+            }
+
+            StringUtil.copyPartialMatches(args[1], options, completions);
+        }
+
         Collections.sort(completions);
         return completions;
     }

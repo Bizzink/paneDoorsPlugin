@@ -1,1 +1,5 @@
-highlightViewDist: 30
+highlight:
+  dist: 30
+  r: 135
+  g: 30
+  b: 255

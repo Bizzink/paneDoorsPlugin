@@ -10,8 +10,9 @@ public class DoorBlockListener implements Listener {
     public void doorBlockBreak(BlockBreakEvent event) {
         if (PaneDoor.isValidDoorBlock(event.getBlock(), null)) {
             for (PaneDoor door: Main.getDoors()) {
-                if (door.isDoorBlock(event.getBlock())) {
+                if (door.contains(event.getBlock())) {
                     Main.deleteDoor(door);
+                    event.setCancelled(true);
                     return;
                 }
             }

@@ -1,26 +1,25 @@
 package com.pobnellion.paneDoors;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class Main extends JavaPlugin {
     private static Main instance;
     private static List<PaneDoor> doors;
     private static FileConfiguration config;
-    private static Logger logger;
     private static int highlightViewDist;
+    private static Color highlightColour;
 
     @Override
     public void onEnable() {
         instance = this;
         doors = new ArrayList<>();
-        logger = getLogger();
 
         this.getCommand("panedoor").setExecutor(new CommandPaneDoor());
         getServer().getPluginManager().registerEvents(new DoorToolListener(), this);
@@ -28,42 +27,36 @@ public class Main extends JavaPlugin {
 
         saveDefaultConfig();
         config = getConfig();
-        int doorCount = loadDoors();
-        highlightViewDist = config.getInt("highlightViewDist");
+        highlightViewDist = config.getInt("highlight.dist");
+        highlightColour = Color.fromRGB(
+                config.getInt("highlight.r"),
+                config.getInt("highlight.g"),
+                config.getInt("highlight.b")
+        );
 
-        logger.info("Loaded " + doorCount + " doors from config.");
+        int doorCount = loadDoors();
+        getLogger().info("Loaded " + doorCount + " doors from config.");
     }
 
     public static Main getInstance() {
         return instance;
     }
 
-    public static void log(String msg) {
-        logger.info(msg);
-    }
-
     private int loadDoors() {
         int i = -1;
 
         while (config.get("doors." + ++i) != null) {
-            Axis axis;
-            try {
-                axis = Axis.valueOf(config.getString("doors." + i + ".axis"));
-            }
-            catch (NullPointerException e) {
-                logger.info("Missing axis in door " + i + "!");
-                continue;
-            }
-
+            Axis axis = Axis.valueOf(config.getString("doors." + i + ".axis"));
             List<Block> doorBlocks = new ArrayList<>();
-            List<String> blocks = config.getStringList("doors." + i + ".blocks");
 
-            for (String blockLocation: blocks) {
-                int x = Integer.parseInt(blockLocation.split(", ")[0]);
-                int y = Integer.parseInt(blockLocation.split(", ")[1]);
-                int z = Integer.parseInt(blockLocation.split(", ")[2]);
+            for (String blockLocation: config.getStringList("doors." + i + ".blocks")) {
+                String[] pos = blockLocation.split(", ");
 
-                Block block = Bukkit.getWorlds().get(0).getBlockAt(x, y, z);
+                Block block = Bukkit.getWorlds().get(0).getBlockAt(
+                        Integer.parseInt(pos[0]),
+                        Integer.parseInt(pos[1]),
+                        Integer.parseInt(pos[2])
+                );
                 doorBlocks.add(block);
             }
 
@@ -96,11 +89,10 @@ public class Main extends JavaPlugin {
     }
 
     public static void deleteDoor(PaneDoor door) {
-        door.setHighlightColor(255, 0, 0);
+        door.setHighlightColor(Color.fromRGB(255, 0, 0));
         door.disableHighlight(null);
         door.displayDeleteHighlight();
         doors.remove(door);
-
         config.set("doors", null);
 
         for (PaneDoor d: doors) {
@@ -119,7 +111,25 @@ public class Main extends JavaPlugin {
     }
 
     public static void setHighlightViewDist(int dist) {
-        config.set("highlightViewDist", dist);
+        highlightViewDist = dist;
+        config.set("highlight.dist", dist);
         instance.saveConfig();
+    }
+
+    public static void setHighlightColour(int r, int g, int b) {
+        highlightColour = Color.fromRGB(r, g, b);
+
+        for (PaneDoor door: doors) {
+            door.setHighlightColor(highlightColour);
+        }
+
+        config.set("highlight.r", r);
+        config.set("highlight.g", g);
+        config.set("highlight.b", b);
+        instance.saveConfig();
+    }
+
+    public static Color getHighlightColour() {
+        return highlightColour;
     }
 }

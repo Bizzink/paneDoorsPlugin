@@ -12,6 +12,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 public class DoorToolListener implements Listener {
@@ -31,25 +32,18 @@ public class DoorToolListener implements Listener {
             return;
         }
 
-        if (block != null ) {
+        if (block != null) {
             event.setCancelled(true);
 
             if (PaneDoor.isValidDoorBlock(block, null)) {
-                PaneDoor targetedDoor = null;
+                Optional<PaneDoor> targetedDoor = Main.getDoors().stream().filter(door -> door.contains(block)).findFirst();
 
-                for (PaneDoor door : Main.getDoors()) {
-                    if (door.isDoorBlock(block)) {
-                        targetedDoor = door;
-                        break;
-                    }
-                }
-
-                if (targetedDoor != null) {
+                if (targetedDoor.isPresent()) {
                     if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
-                        Main.deleteDoor(targetedDoor);
+                        Main.deleteDoor(targetedDoor.get());
                     }
                     else {
-                        targetedDoor.toggleHighlight(player);
+                        targetedDoor.get().toggleHighlight(player);
                     }
                 } else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
                     PaneDoor door = new PaneDoor(block);
