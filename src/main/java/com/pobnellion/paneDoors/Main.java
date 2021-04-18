@@ -7,7 +7,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Main extends JavaPlugin {
     private static Main instance;
@@ -63,7 +65,10 @@ public class Main extends JavaPlugin {
                 doorBlocks.add(block);
             }
 
-            doors.add(new PaneDoor(doorBlocks, axis));
+            Set<String> allowTags = new HashSet<>();
+            allowTags.addAll(config.getStringList("doors." + i + ".allow"));
+
+            doors.add(new PaneDoor(doorBlocks, axis, allowTags));
         }
 
         return i;
@@ -83,6 +88,9 @@ public class Main extends JavaPlugin {
         }
 
         config.set("doors." + doors.indexOf(door) + ".blocks", doorBlocks);
+
+        config.set("doors." + doors.indexOf(door) + ".allow", new ArrayList<>(door.getAllowTags()));
+
         saveConfig();
     }
 
@@ -103,6 +111,11 @@ public class Main extends JavaPlugin {
         }
 
         instance.saveConfig();
+    }
+
+    public static void updateDoor(PaneDoor door) {
+        // update door allow tags
+        config.set("doors." + doors.indexOf(door) + ".allow", new ArrayList<>(door.getAllowTags()));
     }
 
     public static List<PaneDoor> getDoors() {

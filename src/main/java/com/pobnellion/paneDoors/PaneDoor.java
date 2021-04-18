@@ -16,6 +16,7 @@ public class PaneDoor {
     private final List<Location> highlightParticleLocations;
     private Color highlightColor;
     private final Set<Player> highlightViewers = new HashSet<>();
+    private Set<String> allowTags;
 
     public PaneDoor(Block startBlock, boolean respectColour) {
         if (!isValidDoorBlock(startBlock, null)) {
@@ -37,13 +38,15 @@ public class PaneDoor {
         this.doorBlocks = new ArrayList<>();
         this.highlightParticleLocations = new ArrayList<>();
         this.highlightColor = Main.getHighlightColour();
+        this.allowTags = new HashSet<>();
         this.findDoorBlocks(startBlock, startBlock, respectColour);
         this.updateDoorBlocks();
     }
 
-    public PaneDoor(List<Block> blocks, Axis axis) {
+    public PaneDoor(List<Block> blocks, Axis axis, Set<String> allowTags) {
         this.axis = axis;
         this.doorBlocks = blocks;
+        this.allowTags = allowTags;
         this.highlightParticleLocations = new ArrayList<>();
         this.highlightColor = Main.getHighlightColour();
         this.updateDoorBlocks();
@@ -153,6 +156,8 @@ public class PaneDoor {
     }
 
     private void highlightDoorBlocks() {
+        //TODO: optimise this to only spawn plarticles facing player
+
         Particle.DustOptions dustOptions = new Particle.DustOptions(this.highlightColor, 0.75f);
 
         for (Player highlightViewer: highlightViewers) {
@@ -289,5 +294,31 @@ public class PaneDoor {
 
     public Axis getAxis() {
         return this.axis;
+    }
+
+    public void addAllowTag(String tag) {
+        this.allowTags.add(tag);
+    }
+
+    public void removeAllowTag(String tag) {
+        this.allowTags.remove(tag);
+    }
+
+    public Set<String> getAllowTags() {
+        return this.allowTags;
+    }
+
+    public boolean playerAllowed(Player player) {
+        if (this.allowTags.isEmpty()) {
+            return true;
+        }
+
+        for (String tag: this.allowTags) {
+            if (player.getScoreboardTags().contains(tag)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

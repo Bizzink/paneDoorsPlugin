@@ -170,6 +170,54 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                 }
                 break;
 
+            case "allow":
+                if (args.length == 1) {
+                    sender.sendMessage("Usage: /" + label + " allow [add | remove | list]");
+                    break;
+                }
+
+                switch (args[1]) {
+                    case "add":
+                        if (args.length == 2) {
+                            sender.sendMessage("Usage: /" + label + " allow add [tag]");
+                            break;
+                        }
+                        
+                        door = getDoor(block);
+                        door.addAllowTag(args[2]);
+                        Main.updateDoor(door);
+                        sender.sendMessage("Added allowed tag '" + args[2] + "' for door.");
+
+                        break;
+
+                    case "remove":
+                        if (args.length == 2) {
+                            sender.sendMessage("Usage: /" + label + " allow remove [tag]");
+                            break;
+                        }
+
+                        door = getDoor(block);
+                        door.removeAllowTag(args[2]);
+                        Main.updateDoor(door);
+                        sender.sendMessage("Removed allowed tag '" + args[2] + "' for door.");
+
+                        break;
+
+                    case "list":
+                        sender.sendMessage("Allowed tags:");
+
+                        for (String tag: getDoor(block).getAllowTags()) {
+                            sender.sendMessage("  " + tag);
+                        }
+
+                        break;
+
+                    default:
+                        sender.sendMessage("Usage: /" + label + " allow [add | remove | list]");
+                }
+                
+                break;
+
             case "help":
                 sender.sendMessage("Usage: /panedoor, /pd");
                 sender.sendMessage("");
@@ -220,6 +268,7 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
             options.add("hide");
             options.add("delete");
             options.add("highlight");
+            options.add("allow");
             options.add("help");
 
             StringUtil.copyPartialMatches(args[0], options, completions);
@@ -240,6 +289,12 @@ public class CommandPaneDoor implements CommandExecutor, TabCompleter {
                 case "highlight":
                     options.add("distance");
                     options.add("colour");
+                    break;
+
+                case "allow":
+                    options.add("add");
+                    options.add("remove");
+                    options.add("list");
                     break;
             }
 

@@ -1,5 +1,6 @@
 package com.pobnellion.paneDoors;
 
+import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,6 +12,11 @@ public class PlayerMoveListener implements Listener {
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
+
+        if (player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+
         Block block = player.getWorld().getBlockAt(event.getTo());
 
         if (!PaneDoor.isValidDoorBlock(block, null)) {
@@ -19,17 +25,14 @@ public class PlayerMoveListener implements Listener {
         }
 
         for (PaneDoor door: Main.getDoors()) {
-            if (door.contains(block)) {
-                double distance;
+            if (door.contains(block) && door.playerAllowed(player)) {
+                double distance = 0.3;
 
                 if (player.isSprinting()) {
                     distance = 0.4;
                 }
                 else if (player.isSneaking()) {
                     distance = 0.2;
-                }
-                else {
-                    distance = 0.3;
                 }
 
                 if (door.getAxis() == Axis.NS) {
@@ -42,7 +45,7 @@ public class PlayerMoveListener implements Listener {
                         player.teleport(event.getTo().add(-distance, 0, 0));
                     }
                 }
-                else if (door.getAxis() == Axis.EW) {
+                else {
                     double velZ = PlayerVelocity.getVelZ(player);
 
                     if (velZ > 0 && event.getTo().getZ() - (event.getTo().getBlockZ()) < 0.2) { 
