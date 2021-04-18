@@ -25,6 +25,7 @@ public class Main extends JavaPlugin {
         this.getCommand("panedoor").setExecutor(new CommandPaneDoor());
         getServer().getPluginManager().registerEvents(new DoorToolListener(), this);
         getServer().getPluginManager().registerEvents(new DoorBlockListener(), this);
+        getServer().getPluginManager().registerEvents(new PlayerMoveListener(), this);
 
         saveDefaultConfig();
         config = getConfig();

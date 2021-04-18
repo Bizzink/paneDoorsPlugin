@@ -60,8 +60,8 @@ public class PaneDoor {
             return false;
         }
 
-        boolean ns = faces.stream().allMatch(face -> face == BlockFace.NORTH || face == BlockFace.SOUTH);
-        boolean ew = faces.stream().allMatch(face -> face == BlockFace.EAST || face == BlockFace.WEST);
+        boolean ns = faces.contains(BlockFace.NORTH) && faces.contains(BlockFace.SOUTH);
+        boolean ew = faces.contains(BlockFace.EAST) && faces.contains(BlockFace.WEST);
 
         if (axis == null) {
             return ns || ew;
@@ -81,7 +81,8 @@ public class PaneDoor {
         // check distance
         if (Math.abs(block.getX() - startBlock.getX()) > Main.getSearchRadius() ||
             Math.abs(block.getY() - startBlock.getY()) > Main.getSearchRadius() ||
-            Math.abs(block.getZ() - startBlock.getZ()) > Main.getSearchRadius()) {
+            Math.abs(block.getZ() - startBlock.getZ()) > Main.getSearchRadius()
+        ) {
             return;
         }
 

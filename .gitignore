@@ -1,3 +1,7 @@
 /.idea/
 /target/
 paneDoors.iml
+.classpath
+.project
+/.settings/
+/.vscode/
